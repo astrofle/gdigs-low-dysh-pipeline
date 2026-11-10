@@ -1,0 +1,25 @@
+[project]
+name = "gdigs-low-dysh-pipeline"
+version = "0.1.0"
+description = "dysh based pipeline for GDIGS-Low"
+readme = "README.md"
+license = {file = "LICENSE"}
+requires-python = ">=3.12"
+authors = [
+  { name = "Pedro Salas", email = "psalas@nrao.edu" },
+]
+dependencies = [
+    "numpy",
+    "astropy",
+    "dysh @ git+https://github.com/GreenBankObservatory/dysh@1065-gettcal-tutorial-and-math",
+    "pymupdf",
+    "pandas",
+    "bottleneck",
+    "rrlpy",
+]
+
+
+[dependency-groups]
+dev = [
+    "prek"
+]
