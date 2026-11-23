@@ -35,6 +35,8 @@ def main(
 
     filename = Path(data_path) / f"{projid}/{projid}.raw.vegas"
     outputdir = Path(output_path) / projid
+    _summary = filename.name + ".summary"
+    summary_out = outputdir / _summary
 
     outputdir.mkdir(exist_ok=True, parents=True)
 
@@ -48,21 +50,25 @@ def main(
     sdf = GBTFITSLoad(filename)
 
     summary = sdf.get_summary()
+    summary.to_csv(summary_out, index=False)
 
     fluxcal_ = summary.SCAN[summary.OBJECT == fluxcal]
     if len(fluxcal_) == 0:
         logger.error(f"No fluxcal for {projid}")
         return
     if summary.loc[fluxcal_.index].PROC.unique() == "OffOn":
-        tcal_scan = fluxcal_[1]
-        tcal_ref = fluxcal_[0]
+        tcal_scan = fluxcal_.iloc[-1]
+        tcal_ref = fluxcal_.iloc[-2]
     else:
-        tcal_scan = fluxcal_[0]
-        tcal_ref = fluxcal_[1]
+        tcal_scan = fluxcal_.iloc[-2]
+        tcal_ref = fluxcal_.iloc[-1]
 
     if sources is None:
-        sources = sdf.udata("OBJECT")
-        sources.remove(fluxcal)
+        sources = list(
+            summary.OBJECT[
+                (summary.PROC == "RALongMap") | (summary.PROC == "DecLatMap")
+            ]
+        )
     if ifnums is None:
         ifnums = sdf.udata("IFNUM")
     if plnums is None:
@@ -105,9 +111,6 @@ def main(
             dq_obj.plot(base_out_path.as_posix() + "_tcal.pdf", tcal)
 
             for source in sources:
-                if source == fluxcal:
-                    continue
-
                 logger.info(f"{source=} {ifnum=} {plnum=}")
 
                 outdir = outputdir / source
@@ -125,11 +128,11 @@ def main(
                 )
                 df = sdf.get_summary(selected=True)
                 scans = df.SCAN.unique()
-                _scan = int(df["SCAN"].median())
+                _scan = int(df["SCAN"].iloc[len(df) // 2])
+                logger.info(f"Using scan={_scan} to get RRL locations")
                 _intnum = df[df["SCAN"] == _scan]["# INT"].iloc[0] // 2
                 sdf.clear_selection()
 
-                logger.info(f"Using scan={_scan} to get RRL locations")
                 spec = sdf.gettp(
                     ifnum=ifnum, plnum=plnum, fdnum=0, intnum=_intnum, scan=_scan
                 ).timeaverage()
